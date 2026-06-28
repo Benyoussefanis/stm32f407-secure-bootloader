@@ -1,0 +1,40 @@
+setup (run once):
+  pip install pyserial pycryptodome cryptography
+
+generate key pair:
+  openssl ecparam -name prime256v1 -genkey -noout -out private.pem
+  openssl ec -in private.pem -pubout -out public.pem
+
+  if openssl is not recognized on windows:
+  C:\Program Files\Git\usr\bin\openssl.exe
+
+convert public key to C header (then clean build and flash bootloader):
+  python gen_pubkey.py public.pem Bootloader/Core/Inc/pubkey.h
+
+
+send firmware (version must be >= what is stored on the board):
+  python send_firm.py Application.bin COM7 --version=1
+  python send_firm.py Application.bin COM7 --version=2
+
+  first time use --version=1
+  increment each update
+  if unsure what is stored use --version=10
+
+
+security tests (hold blue button + reset before each, scripts wait for Enter):
+
+  test 1 - wrong signature:
+    python test_wrongkey.py COM7 --version=2
+    board prints VERIFY FAILED and red LED
+
+  test 2 - rollback attempt:
+    python test_rollback.py COM7
+    board prints ROLLBACK BLOCKED and red LED
+
+
+notes:
+  private.pem must be in the same folder as send_firm.py
+  wrong_private.pem is generated automatically by test_wrongkey.py
+  connect FTDI RX to PA2, FTDI TX to PA3, FTDI GND to board GND
+  UART output at 115200 baud 8N1 in PuTTY or TeraTerm on the FTDI COM port
+  hold blue button and press reset to enter bootloader mode, orange LED turns on

@@ -1,0 +1,104 @@
+issues i hit during the project
+
+
+flash operation error on second debug launch
+CubeIDE throws "Error finishing flash operation" when debugging a second time.
+the CPU was executing from the same flash being erased, causing a stall and timeout.
+fix: added volatile delay before flash operations, switched to connect-under-reset in debug config.
+recovery: CubeProgrammer, connect under reset, full chip erase.
+
+
+double Flash_Unlock causing PGSERR
+flash operations silently failed, BSY never cleared.
+Flash_Unlock was called from both main and inside each flash function.
+writing the unlock keys a second time when already unlocked triggers PGSERR error state.
+fix: unlock once in main, lock once after, internal functions only poll BSY.
+
+
+RXNEIE cleared after USART init
+echo not working, interrupt never fired even though the board was sending output fine.
+auto baud detection code reconfigured PA3 as EXTI input after USART init, wiping the AF setting.
+fix: removed auto baud from init, fixed ordering: clocks, GPIO, BRR, RXNEIE, NVIC, then UE last.
+
+
+ST-LINK VCP not wired to USART2
+typed into PuTTY on the ST-LINK COM port, board received nothing.
+UM1472 section 7.3.3 says the ST-LINK VCP is not connected to any STM32 UART pins on this board.
+fix: FTDI FT232 adapter, TX to PA3, RX to PA2, GND to GND.
+
+
+board bricking from bad flash code
+CubeIDE could not connect at all on next launch.
+the flashed code crashed immediately before CubeIDE could attach.
+fix: CubeProgrammer connect-under-reset, hold RESET, click Connect, release, full chip erase.
+
+
+APPLICATION_BLINK not found at 0x08008000
+bootloader printed no valid app, red LED on.
+CubeIDE always flashes to 0x08000000, the application was never put at the right address.
+fix: use CubeProgrammer to flash application .bin explicitly to 0x08008000.
+
+
+breakpoints ignored by debugger
+set breakpoints, execution ran straight past them.
+compiler was at O2, optimizer removed or reordered the code the breakpoint was on.
+fix: set optimization to O0 in project properties, place breakpoints from inside the Debug perspective.
+
+
+peripheral registers showing failed to evaluate
+FLASH->SR and USART2->SR would not show values in Expressions window.
+registers can only be read while the CPU is paused.
+fix: always pause at a breakpoint first, or use the Peripherals view which works regardless.
+
+
+MX_GPIO_Init undefined reference at link
+linker errors on MX_GPIO_Init and SystemClock_Config.
+replaced all of main.c including the generated function bodies below main.
+fix: only edit inside USER CODE BEGIN and USER CODE END blocks, never delete the generated functions.
+
+
+VERIFY FAILED after new key pair
+generated new keys, flashed the bootloader, sent firmware, got VERIFY FAILED.
+skipped Project Clean in CubeIDE so the old public key was still compiled in.
+fix: always Project then Clean then Build after running gen_pubkey.py.
+
+
+first chunk always retries 2 or 3 times
+chunk 1 NACKed every time before eventually succeeding.
+the board erases the download slot when UPDATE_START is received, first chunk arrives during erase.
+not a bug, retry logic handles it, documented so it does not look like a failure.
+
+
+wrong key test showed ROLLBACK BLOCKED instead of VERIFY FAILED
+running test_wrongkey without specifying version, script defaulted to version 1.
+board had version 2 stored, rejected on version before reaching signature check.
+fix: made version required in send_firm.py, test scripts also require it explicitly.
+
+
+openssl not found on windows
+openssl is not in PATH by default on windows even with git installed.
+fix: add C:\Program Files\Git\usr\bin to PATH, or run with the full path.
+
+
+make_bad.py accepted by bootloader
+original make_bad.py flipped a byte in the binary then re-signed with the real key.
+signature was valid so bootloader installed it, which was not testing rejection at all.
+fix: rewrote to generate a random throwaway key, sign with that, bootloader rejects with VERIFY FAILED.
+
+
+CRC mismatch between Python and board
+UPDATE_DONE sent, board returned NACK on CRC check.
+STM32 hardware CRC processes 32-bit words MSB first, Python was feeding raw bytes in order.
+fix: pad both sides to 4-byte boundary with 0xFF before calculating, match polynomial exactly.
+
+
+vector table not relocated before jump
+application started, then faulted immediately on first interrupt.
+VTOR was not updated before jumping, so all exception handlers still pointed at bootloader vectors.
+fix: write SCB->VTOR = APP_ADDRESS before loading MSP and jumping.
+
+
+SysTick firing during jump to application
+hard fault immediately after jump on some runs but not others.
+SysTick interrupt fired during the transition before the application set up its own handler.
+fix: disable SysTick before jump, application reinitializes it in its own startup.

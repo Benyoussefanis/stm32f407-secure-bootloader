@@ -1,0 +1,175 @@
+step by step guide
+
+
+what you need:
+  stm32f407g-disc1 board
+  ftdi ft232 usb to uart adapter (3 wires: RX, TX, GND)
+  STM32CubeProgrammer installed
+  python 3 installed
+  git installed (includes openssl on windows)
+
+
+- option A: use the pre-built files (no CubeIDE needed)
+
+Application.bin is already in the repo root.
+the bootloader binary is at Bootloader/Debug/Bootloader.bin.
+
+
+step 1: flash the bootloader
+
+  open STM32CubeProgrammer
+  connect the board via the ST-LINK USB cable
+  go to the Erasing & Programming tab
+  set start address to 0x08000000
+  browse to Bootloader/Debug/Bootloader.bin
+  click Start Programming
+  disconnect
+
+
+step 2: flash the application
+
+  in STM32CubeProgrammer
+  set start address to 0x08008000
+  browse to Application/Debug/Application.bin
+  click Start Programming
+  disconnect
+
+  do this once so the board has something to run on normal boot.
+  all future updates go through send_firm.py over UART.
+
+
+step 3: install python packages
+
+  pip install pyserial pycryptodome cryptography
+
+
+step 4: wire the FTDI adapter
+
+  ftdi RX  ->  PA2 on the board  (board UART TX)
+  ftdi TX  ->  PA3 on the board  (board UART RX)
+  ftdi GND ->  any GND pin on the board
+
+  plug the ftdi into the PC. check device manager for the COM port.
+
+
+step 5: enter bootloader mode
+
+  hold the blue button and press the black reset button
+  release reset while still holding blue
+  orange LED means the board is waiting
+
+
+step 6: send firmware
+
+  python send_firm.py Application.bin COM7 --version=1
+
+  replace COM7 with the actual FTDI port.
+  first time use --version=1, increment each update.
+  if unsure what version is stored use --version=10.
+
+  chunks transfer, then INSTALL OK. green LED and the board reboots.
+
+
+- option B: build everything yourself (CubeIDE required)
+
+step 1: generate a key pair
+
+  openssl is needed. if git is installed it is already on the machine.
+  if openssl is not recognized:
+  C:\Program Files\Git\usr\bin\openssl.exe
+
+  to fix permanently: open system environment variables, find PATH, add:
+  C:\Program Files\Git\usr\bin
+
+  then run:
+
+  openssl ecparam -name prime256v1 -genkey -noout -out private.pem
+  openssl ec -in private.pem -pubout -out public.pem
+
+  private.pem is the signing key. never share it or commit it.
+
+
+step 2: generate the C header
+
+  python gen_pubkey.py public.pem Bootloader/Core/Inc/pubkey.h
+
+
+step 3: build and flash the bootloader
+
+  open the Bootloader project in STM32CubeIDE
+  go to Project then Clean
+  then go to Project then Build
+  skipping Clean means the old public key stays compiled in.
+  every firmware send will fail with VERIFY FAILED until you do a clean build.
+
+  after building:
+  open STM32CubeProgrammer
+  connect via ST-LINK
+  flash the .bin from Bootloader/Debug/ to 0x08000000
+
+
+step 4: build the application
+
+  open the Application project in STM32CubeIDE
+  build it
+  output is in Application/Debug/Application.bin
+  copy Application.bin next to send_firm.py
+
+  flash it once to 0x08008000 so the board has a starting app.
+
+
+step 5: install python packages
+
+  pip install pyserial pycryptodome cryptography
+
+
+step 6: wire the FTDI and enter bootloader mode
+
+  ftdi RX to PA2, ftdi TX to PA3, GND to GND
+  hold blue button + press reset
+  orange LED = waiting
+
+
+step 7: send firmware
+
+  python send_firm.py Application.bin COM7 --version=1
+
+
+- security tests
+
+test 1: wrong signature (board should reject with VERIFY FAILED)
+
+  python test_wrongkey.py COM7 --version=2
+
+  version must be valid so the board reaches the signature check, not the version check.
+
+test 2: anti-rollback (board should reject with ROLLBACK BLOCKED)
+
+  python test_rollback.py COM7
+
+  hold blue button + reset before each test. the scripts wait for Enter.
+
+
+- troubleshooting
+
+openssl not recognized:
+  find it at C:\Program Files\Git\usr\bin\openssl.exe and run with full path,
+  or add that folder to PATH.
+
+VERIFY FAILED after generating new keys:
+  skipped Project Clean before building. the old public key was still compiled in.
+
+ROLLBACK BLOCKED when not testing rollback:
+  the version sent is lower than what is stored. use a higher --version number.
+
+chunk 1 takes 2-3 attempts before ACK:
+  normal. the board erases the download slot on UPDATE_START, first chunk arrives during erase.
+
+wrong key test shows ROLLBACK BLOCKED instead of VERIFY FAILED:
+  version passed was lower than stored. board checks version before signature.
+
+button pressed during transfer:
+  board resets, transfer fails. old app stays untouched. reset and start again.
+
+no UART output:
+  open PuTTY or TeraTerm, FTDI COM port, 115200 baud, 8N1.

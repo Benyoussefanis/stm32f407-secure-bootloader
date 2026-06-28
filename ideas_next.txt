@@ -1,0 +1,44 @@
+things i want to add or improve
+
+
+- hardware verifier (second mcu as bodyguard)
+
+right now the signature check runs on the same chip that does the update.
+if someone overwrites sectors 0-1 they can replace the bootloader entirely and bypass every check.
+
+the fix is a second cheap mcu that sits between the PC and the main board.
+it receives the firmware packet first, runs the ECDSA check itself, and only forwards data if the signature passes.
+the main board never sees anything that did not pass through the verifier first.
+the verifier has its own copy of the public key with RDP level 2 locked so it cannot be read or changed.
+
+extra things the verifier could do: lock after 3 failed attempts and require a physical reset,
+log every attempt to an external EEPROM, require a jumper set before any update is allowed.
+
+
+- hardware AES instead of tiny-aes-c
+
+the F407 has a hardware CRYP unit that is constant-time and faster than software.
+tiny-aes-c is not constant-time which means timing measurements could leak key bits.
+swapping to the hardware peripheral removes that weakness and frees up CPU cycles.
+
+
+- RDP level 1 on bootloader flash
+
+the SWD port is fully open right now, someone with a debugger can read the public key out of flash.
+RDP level 1 blocks flash readout over SWD without permanently locking the chip like level 2 does.
+low effort, meaningful improvement.
+
+
+- firmware version visible on normal boot
+
+no way to know which version is running without a debugger.
+one UART line on startup would be enough: app v2 running.
+useful for knowing what --version number to use for the next update.
+
+
+- monotonic counter alongside the version number
+
+the version stored in sector 7 is just a number.
+if someone could write to sector 7 they could reset it and make rollback possible again.
+a counter that only increments on a successful install, stored separately,
+would make rollback protection harder to bypass even if the version bytes were tampered with.

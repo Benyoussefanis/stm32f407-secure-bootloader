@@ -1,0 +1,7 @@
+i used these open source libraries, credits to the authors:
+
+micro-ecc by Kenneth MacKay (BSD 2-Clause), used for ECDSA P-256
+tiny-AES-c by Kokke (public domain), used for AES-128
+SHA-256 by Brad Conte (public domain), used for hashing
+
+the GCM layer (aes_gcm.c) i wrote myself on top of tiny-AES-c, not audited.
