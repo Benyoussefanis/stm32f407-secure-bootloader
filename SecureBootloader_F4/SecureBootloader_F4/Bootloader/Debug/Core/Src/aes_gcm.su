@@ -1,0 +1,5 @@
+..\Core\Src\aes_gcm.c:7:13:gcm_mul	72	static
+..\Core\Src\aes_gcm.c:27:13:ghash	112	static
+..\Core\Src\aes_gcm.c:81:13:build_ctr	24	static
+..\Core\Src\aes_gcm.c:90:6:aes_gcm_encrypt	304	static
+..\Core\Src\aes_gcm.c:123:5:aes_gcm_decrypt	328	static

@@ -1,0 +1,5 @@
+..\Core\Src\flash.c:5:6:Flash_Unlock	4	static
+..\Core\Src\flash.c:14:6:Flash_Lock	4	static
+..\Core\Src\flash.c:19:13:flash_wait	4	static
+..\Core\Src\flash.c:24:6:Flash_EraseSector	16	static
+..\Core\Src\flash.c:35:6:Flash_WriteBuffer	32	static

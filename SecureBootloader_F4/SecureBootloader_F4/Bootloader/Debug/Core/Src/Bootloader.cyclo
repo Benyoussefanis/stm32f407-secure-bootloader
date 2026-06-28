@@ -1,0 +1,12 @@
+../Drivers/CMSIS/Include/core_cm4.h:1684:22:__NVIC_EnableIRQ	2
+../Drivers/CMSIS/Include/core_cm4.h:1938:34:__NVIC_SystemReset	1
+..\Core\Src\Bootloader.c:15:16:update_requested	3
+..\Core\Src\Bootloader.c:26:13:make_session_key	1
+..\Core\Src\Bootloader.c:40:16:check_app	1
+..\Core\Src\Bootloader.c:49:13:install_firmware	3
+..\Core\Src\Bootloader.c:69:17:calc_slot_crc	1
+..\Core\Src\Bootloader.c:77:17:version_read	2
+..\Core\Src\Bootloader.c:85:13:version_write	1
+..\Core\Src\Bootloader.c:103:13:do_update	21
+..\Core\Src\Bootloader.c:278:16:button_held	1
+..\Core\Src\Bootloader.c:288:6:Bootloader_Run	4

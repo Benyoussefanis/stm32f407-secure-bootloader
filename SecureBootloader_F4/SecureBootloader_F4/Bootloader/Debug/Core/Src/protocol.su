@@ -1,0 +1,3 @@
+..\Core\Src\protocol.c:25:9:Protocol_FeedByte	24	static
+..\Core\Src\protocol.c:128:6:Protocol_SendACK	40	static
+..\Core\Src\protocol.c:152:6:Protocol_SendNACK	40	static

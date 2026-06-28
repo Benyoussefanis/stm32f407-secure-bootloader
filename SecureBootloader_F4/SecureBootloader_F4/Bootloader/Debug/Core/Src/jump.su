@@ -1,0 +1,3 @@
+../Drivers/CMSIS/Include/core_cm4.h:1722:22:__NVIC_DisableIRQ	16	static,ignoring_inline_asm
+..\Core\Src\jump.c:4:9:Jump_IsApplicationValid	16	static
+..\Core\Src\jump.c:10:6:Jump_ToApplication	32	static,ignoring_inline_asm
